@@ -11,7 +11,7 @@ export const siteConfig = {
   availableForWork: true,
   // "owner/repo" for this portfolio's own GitHub repo, used for the nav bar star count.
   // Update this if the repo lives somewhere else.
-  githubRepo: "Astral420/roger-portfolio",
+  githubRepo: "Astral420/roger-portfolio-v1",
 };
 
 // Placeholder — wire up to the Spotify "Now Playing" API later.

@@ -67,7 +67,7 @@ future WLED smart-lighting integration — see `src/components/chat/IoTGrid.tsx`
 
 ## Stack
 
-React 19 · TypeScript · Vite · Tailwind CSS 3 · Framer Motion · React Three Fiber · Drei · Lucide React
+React 19 · TypeScript · Vite · Tailwind CSS 3 · Framer Motion · React Three Fiber · Drei · React Icons
 
 ## Accessibility
 

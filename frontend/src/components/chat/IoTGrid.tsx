@@ -62,7 +62,7 @@ export function IoTGrid() {
                 ))}
               </div>
               <p className="text-[11px] leading-relaxed text-tertiary">
-                Pick a color here and it'll push live to my desk lights over
+                Pick a color here and it'll push live to my room lights over
                 WebSocket.
               </p>
             </div>

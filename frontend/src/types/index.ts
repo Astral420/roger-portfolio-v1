@@ -2,7 +2,7 @@ export type Theme = "dark" | "light";
 
 export interface TechItem {
   name: string;
-  icon: string; // lucide icon name, resolved in TechMarquee
+  icon: string; // react-icons component name (Si* or FaAws), resolved in TechMarquee
 }
 
 export interface Project {

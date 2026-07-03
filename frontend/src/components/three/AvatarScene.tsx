@@ -1,13 +1,10 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
-import {
-  ContactShadows,
-  Environment,
-  Float,
-  MeshDistortMaterial,
-} from "@react-three/drei";
-import type { Group, Mesh } from "three";
+import { ContactShadows, Environment, Float, useGLTF } from "@react-three/drei";
+import type { Group } from "three";
 import * as THREE from "three";
+
+useGLTF.preload("/models/roger2.glb");
 
 interface AvatarSceneProps {
   pointer: { nx: number; ny: number };
@@ -15,49 +12,59 @@ interface AvatarSceneProps {
 }
 
 /**
- * Placeholder avatar geometry.
- *
- * There is no `Roger.glb` yet, so this renders a stylized abstract figure
- * (a soft distorted core + orbiting rings) that carries the same lighting,
- * scale, and motion rig a real model would use. Once a real asset exists:
- *
- *   const { scene } = useGLTF('/models/Roger.glb');
- *   return <primitive object={scene} scale={1.4} position={[0, -1.2, 0]} />;
- *
- * ...dropped in place of <PlaceholderFigure />, with useGLTF.preload('/models/Roger.glb')
- * called once near the top of this module. The breathing / floating / mouse-follow
- * rig below (on the parent <group>) works unchanged with a real mesh.
+ * Framing controls — tune these three knobs to fit whatever GLB is currently
+ * loaded, since every export tool ships a different scale, pivot, and
+ * forward-facing direction. No code logic below needs to change, just these
+ * numbers, while eyeballing the live result.
  */
-function PlaceholderFigure() {
-  const coreRef = useRef<Mesh>(null);
-
-  useFrame((state) => {
-    const t = state.clock.getElapsedTime();
-    if (coreRef.current) {
-      const material = coreRef.current
-        .material as THREE.MeshPhysicalMaterial & { distort: number };
-      material.distort = 0.28 + Math.sin(t * 0.6) * 0.06;
-    }
-  });
-
-  return (
-    <mesh ref={coreRef} castShadow>
-      <icosahedronGeometry args={[1.05, 6]} />
-      <MeshDistortMaterial
-        color="#6366F1"
-        roughness={0.15}
-        metalness={0.3}
-        distort={0.28}
-        speed={1.4}
-        emissive="#3B82F6"
-        emissiveIntensity={0.08}
-      />
-    </mesh>
-  );
-}
+// Rotates the model around Y to face the camera. If it's still not facing
+// forward, try 0, Math.PI / 2, Math.PI, or -Math.PI / 2.
+const MODEL_ROTATION_Y = -Math.PI / 2;
+// Which horizontal "slice" of the model's bounding box gets centered in
+// frame: 0.5 = full-body vertical center, closer to 1 = crops in toward the
+// top of the model (head/shoulders), closer to 0 crops toward the bottom.
+const MODEL_VERTICAL_ANCHOR = 0.4;
+// Extra zoom multiplier applied after the model is normalized to
+// TARGET_HEIGHT. Raise this to zoom in tighter on the anchored area.
+const MODEL_ZOOM = 1.2;
+// Target height (world units) the model's full bounding box is normalized
+// to, before MODEL_ZOOM is applied.
+const TARGET_HEIGHT = 2.2;
 
 export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
   const groupRef = useRef<Group>(null);
+  const modelRef = useRef<Group>(null);
+  const centeredRef = useRef(false);
+  const { scene } = useGLTF("/models/roger2.glb");
+
+  // Every export tool (Blender, Mixamo, Ready Player Me, etc.) ships a GLB
+  // with its own arbitrary pivot point and unit scale. Rather than guessing
+  // fixed position/scale numbers, measure the model's actual bounding box
+  // once it loads, re-center its pivot near the anchored slice, and
+  // normalize + zoom its scale so it's framed consistently.
+  useEffect(() => {
+    if (centeredRef.current || !modelRef.current) return;
+    centeredRef.current = true;
+
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+
+    const centerX = (box.min.x + box.max.x) / 2;
+    const centerZ = (box.min.z + box.max.z) / 2;
+    const anchorY = THREE.MathUtils.lerp(
+      box.min.y,
+      box.max.y,
+      MODEL_VERTICAL_ANCHOR,
+    );
+
+    scene.position.set(-centerX, -anchorY, -centerZ);
+
+    const tallestAxis = Math.max(size.y, 0.0001);
+    modelRef.current.scale.setScalar(
+      (TARGET_HEIGHT / tallestAxis) * MODEL_ZOOM,
+    );
+  }, [scene]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
@@ -113,12 +120,14 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
         floatIntensity={reducedMotion ? 0 : 0.4}
       >
         <group ref={groupRef} position={[0, 0, 0]}>
-          <PlaceholderFigure />
+          <group ref={modelRef} rotation={[0, MODEL_ROTATION_Y, 0]}>
+            <primitive object={scene} />
+          </group>
         </group>
       </Float>
 
       <ContactShadows
-        position={[0, -1.6, 0]}
+        position={[0, -1.4, 0]}
         opacity={0.35}
         scale={6}
         blur={2.6}
