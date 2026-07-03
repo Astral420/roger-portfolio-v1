@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowUpRight } from "lucide-react";
 import { projects } from "../../data/projects";
@@ -70,10 +70,12 @@ function ProjectCard({
   project,
   index,
   total,
+  forcedHeight,
 }: {
   project: Project;
   index: number;
   total: number;
+  forcedHeight?: number;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -98,7 +100,8 @@ function ProjectCard({
       style={{ zIndex: index + 1 }}
     >
       <motion.div
-        style={{ scale, opacity }}
+        data-project-card
+        style={{ scale, opacity, minHeight: forcedHeight }}
         initial={{ y: 40, opacity: 0 }}
         whileInView={{ y: 0, opacity: 1 }}
         viewport={{ once: true, margin: "-100px" }}
@@ -189,6 +192,53 @@ export function Projects() {
   const visibleProjects = projects.filter((project) =>
     isProjectEnabled(project.id),
   );
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const [stackCardHeight, setStackCardHeight] = useState<number | null>(null);
+  const visibleProjectKey = visibleProjects
+    .map((project) => project.id)
+    .join("|");
+
+  useEffect(() => {
+    const cardsContainer = cardsRef.current;
+    if (!cardsContainer) return;
+
+    const cards = Array.from(
+      cardsContainer.querySelectorAll<HTMLElement>("[data-project-card]"),
+    );
+
+    if (!cards.length) {
+      setStackCardHeight(null);
+      return;
+    }
+
+    const syncStackCardHeight = () => {
+      const nextHeight = cards.reduce(
+        (maxHeight, card) =>
+          Math.max(maxHeight, card.getBoundingClientRect().height),
+        0,
+      );
+
+      setStackCardHeight((currentHeight) => {
+        if (
+          currentHeight !== null &&
+          Math.abs(currentHeight - nextHeight) < 0.5
+        ) {
+          return currentHeight;
+        }
+
+        return nextHeight;
+      });
+    };
+
+    syncStackCardHeight();
+
+    const observer = new ResizeObserver(syncStackCardHeight);
+    cards.forEach((card) => observer.observe(card));
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [visibleProjectKey]);
 
   return (
     <section
@@ -215,13 +265,14 @@ export function Projects() {
           </h2>
         </motion.div>
 
-        <div className="flex flex-col gap-24 pb-24 md:gap-32">
+        <div ref={cardsRef} className="flex flex-col gap-24 pb-24 md:gap-32">
           {visibleProjects.map((project, index) => (
             <ProjectCard
               key={project.id}
               project={project}
               index={index}
               total={visibleProjects.length}
+              forcedHeight={stackCardHeight ?? undefined}
             />
           ))}
         </div>
