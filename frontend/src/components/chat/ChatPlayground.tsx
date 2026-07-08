@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent, WheelEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { CornerDownLeft, Pencil, Users, Wifi, WifiOff, X } from "lucide-react";
 import { useChat } from "../../contexts/ChatContext";
@@ -129,17 +129,29 @@ function IdentityBar() {
 }
 
 export function ChatPlayground() {
-  const { isOpen, close, messages, sendMessage, isTyping, connectionStatus } =
-    useChat();
+  const {
+    isOpen,
+    close,
+    messages,
+    sendMessage,
+    notifyTyping,
+    notifyStoppedTyping,
+    isTyping,
+    connectionStatus,
+  } = useChat();
   const [draft, setDraft] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const isPointerInsideRef = useRef(false);
 
   // The page stays scrollable while the chat is open (no body-scroll lock —
   // that used to hide the scrollbar and shift centered content sideways).
   // Instead, an attempt to scroll the page dismisses the panel, same as
-  // clicking outside it. Internal scrolling of the message list doesn't
-  // bubble a window `scroll` event, so it's unaffected.
+  // clicking outside it. While the cursor is over the panel itself, scrolling
+  // should scroll the message list instead of dismissing the panel — even
+  // when the list is scrolled to its start/end and the wheel event would
+  // otherwise chain up to the window.
   useEffect(() => {
     if (!isOpen) return;
 
@@ -148,13 +160,27 @@ export function ChatPlayground() {
       armed = true;
     }, 200);
 
-    const handleWindowScroll = () => {
-      if (armed) close();
+    const handleWindowWheel = (event: globalThis.WheelEvent) => {
+      if (!armed) return;
+
+      const target = event.target as Node | null;
+      if (target && panelRef.current?.contains(target)) return;
+
+      close();
     };
 
+    const handleWindowScroll = () => {
+      if (armed && !isPointerInsideRef.current) close();
+    };
+
+    window.addEventListener("wheel", handleWindowWheel, {
+      capture: true,
+      passive: true,
+    });
     window.addEventListener("scroll", handleWindowScroll, { passive: true });
     return () => {
       window.clearTimeout(armTimer);
+      window.removeEventListener("wheel", handleWindowWheel, true);
       window.removeEventListener("scroll", handleWindowScroll);
     };
   }, [isOpen, close]);
@@ -174,6 +200,7 @@ export function ChatPlayground() {
     if (!draft.trim()) return;
     sendMessage(draft);
     setDraft("");
+    notifyStoppedTyping();
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -181,6 +208,23 @@ export function ChatPlayground() {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handlePanelWheel = (e: WheelEvent<HTMLDivElement>) => {
+    const list = scrollRef.current;
+    if (!list) return;
+
+    const maxScrollTop = list.scrollHeight - list.clientHeight;
+    if (maxScrollTop <= 0) return;
+
+    // Always route wheel motion inside the panel to the message list, so the
+    // page doesn't steal the scroll and dismiss the chat.
+    e.preventDefault();
+    e.stopPropagation();
+    list.scrollTop = Math.min(
+      maxScrollTop,
+      Math.max(0, list.scrollTop + e.deltaY),
+    );
   };
 
   return (
@@ -198,6 +242,14 @@ export function ChatPlayground() {
           />
 
           <motion.div
+            ref={panelRef}
+            onPointerEnter={() => {
+              isPointerInsideRef.current = true;
+            }}
+            onPointerLeave={() => {
+              isPointerInsideRef.current = false;
+            }}
+            onWheelCapture={handlePanelWheel}
             role="dialog"
             aria-modal="true"
             aria-label="Chat playground"
@@ -233,7 +285,7 @@ export function ChatPlayground() {
             {/* Messages */}
             <div
               ref={scrollRef}
-              className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4"
+              className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4"
             >
               {messages.map((msg) => {
                 if (msg.author === "system") {
@@ -253,6 +305,11 @@ export function ChatPlayground() {
                     key={msg.id}
                     className={`flex flex-col ${isVisitor ? "items-end" : "items-start"}`}
                   >
+                    {!isVisitor && msg.name && (
+                      <span className="mb-1 px-1 text-[10px] font-medium text-tertiary">
+                        {msg.name}
+                      </span>
+                    )}
                     <div
                       className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         isVisitor
@@ -278,8 +335,13 @@ export function ChatPlayground() {
                 <textarea
                   ref={inputRef}
                   value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    if (e.target.value.trim()) notifyTyping();
+                    else notifyStoppedTyping();
+                  }}
                   onKeyDown={handleKeyDown}
+                  onBlur={notifyStoppedTyping}
                   rows={1}
                   placeholder="Type a message…"
                   aria-label="Message"

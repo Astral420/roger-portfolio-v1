@@ -24,6 +24,7 @@ export const projects: Project[] = [
     githubUrl: "https://github.com/Astral420/KnockSense",
     liveUrl: "",
     image: "/projects/knocksense.png",
+    inProgress: true,
   },
   {
     id: "proj-02",

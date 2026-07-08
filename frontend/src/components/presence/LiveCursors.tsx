@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { usePresence } from "../../contexts/PresenceContext";
 import { useReducedMotionPreference } from "../../hooks/useReducedMotion";
@@ -6,15 +6,29 @@ import { useReducedMotionPreference } from "../../hooks/useReducedMotion";
 /**
  * Renders every other visitor's live cursor + name tag over the page.
  *
- * Positions are broadcast as normalized (0..1) viewport coordinates so they
- * map sensibly across different screen sizes, then converted back to pixels
- * here. Your own cursor stays the native OS pointer — only remote visitors
- * see it, the same way it only shows theirs to you.
+ * Positions are broadcast as normalized (0..1) *document/page* coordinates
+ * (not viewport coordinates). That keeps cursors anchored to the same section
+ * across visitors even when their local scroll positions differ.
  */
+function getDocumentMetrics() {
+  const doc = document.documentElement;
+  return {
+    width: Math.max(doc.scrollWidth, window.innerWidth),
+    height: Math.max(doc.scrollHeight, window.innerHeight),
+    scrollX: window.scrollX,
+    scrollY: window.scrollY,
+  };
+}
+
 export function LiveCursors() {
   const { remoteCursors, reportCursor } = usePresence();
   const reducedMotion = useReducedMotionPreference();
   const frameRef = useRef<number | null>(null);
+  const [viewport, setViewport] = useState(() =>
+    typeof window === "undefined"
+      ? { width: 1, height: 1, scrollX: 0, scrollY: 0 }
+      : getDocumentMetrics(),
+  );
 
   useEffect(() => {
     if (reducedMotion) return;
@@ -23,7 +37,8 @@ export function LiveCursors() {
       if (frameRef.current !== null) return;
       frameRef.current = requestAnimationFrame(() => {
         frameRef.current = null;
-        reportCursor(event.clientX / window.innerWidth, event.clientY / window.innerHeight);
+        const metrics = getDocumentMetrics();
+        reportCursor(event.pageX / metrics.width, event.pageY / metrics.height);
       });
     };
 
@@ -34,10 +49,34 @@ export function LiveCursors() {
     };
   }, [reducedMotion, reportCursor]);
 
+  useEffect(() => {
+    let rafId: number | null = null;
+
+    const syncViewport = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        setViewport(getDocumentMetrics());
+      });
+    };
+
+    window.addEventListener("scroll", syncViewport, { passive: true });
+    window.addEventListener("resize", syncViewport, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", syncViewport);
+      window.removeEventListener("resize", syncViewport);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   if (reducedMotion || remoteCursors.length === 0) return null;
 
   return (
-    <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-[65] overflow-hidden">
+    <div
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-[65] overflow-hidden"
+    >
       <AnimatePresence>
         {remoteCursors.map((cursor) => (
           <motion.div
@@ -47,13 +86,24 @@ export function LiveCursors() {
             animate={{
               opacity: 1,
               scale: 1,
-              x: cursor.x * window.innerWidth,
-              y: cursor.y * window.innerHeight,
+              x: cursor.x * viewport.width - viewport.scrollX,
+              y: cursor.y * viewport.height - viewport.scrollY,
             }}
             exit={{ opacity: 0, scale: 0.6 }}
-            transition={{ type: "spring", stiffness: 320, damping: 30, mass: 0.6 }}
+            transition={{
+              type: "spring",
+              stiffness: 320,
+              damping: 30,
+              mass: 0.6,
+            }}
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" className="drop-shadow-sm">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 18 18"
+              fill="none"
+              className="drop-shadow-sm"
+            >
               <path
                 d="M2 1.5 15.5 8.2 9.4 9.6 6.7 15.8 2 1.5Z"
                 fill={cursor.color}

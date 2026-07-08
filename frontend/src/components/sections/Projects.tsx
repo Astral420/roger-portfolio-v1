@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Hammer } from "lucide-react";
 import { projects } from "../../data/projects";
 import type { Project } from "../../types";
 import { GithubMark } from "../ui/BrandIcons";
@@ -123,9 +123,17 @@ function ProjectCard({
 
           {/* Engineering info */}
           <div className="flex flex-col">
-            <span className="font-mono text-sm text-accent-from">
-              {project.number}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-sm text-accent-from">
+                {project.number}
+              </span>
+              {project.inProgress && (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-amber-400">
+                  <Hammer size={10} strokeWidth={2} />
+                  In progress
+                </span>
+              )}
+            </div>
             <h3 className="mt-3 text-2xl font-medium text-primary md:text-3xl">
               {project.name}
             </h3>

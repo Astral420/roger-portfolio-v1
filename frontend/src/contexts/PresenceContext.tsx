@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { ConnectionStatus, RemoteCursor } from "../types";
+import { useSocket } from "./SocketContext";
 
 const GUEST_NUMBER_KEY = "roger-portfolio-guest-number";
 const GUEST_ID_KEY = "roger-portfolio-guest-id";
@@ -22,10 +23,6 @@ const CURSOR_COLORS = [
   "#10B981",
   "#EF4444",
 ];
-
-/** Presence server URL, e.g. wss://presence.rogerdy.dev — see backend/BACKEND.md. */
-const PRESENCE_WS_URL = import.meta.env.VITE_PRESENCE_WS_URL as
-  string | undefined;
 
 // Throttle outgoing cursor broadcasts so we don't flood the socket.
 const CURSOR_BROADCAST_MS = 50;
@@ -94,96 +91,80 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
   );
   const [activeUsers, setActiveUsers] = useState(1);
   const [remoteCursors, setRemoteCursors] = useState<RemoteCursor[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(
-    PRESENCE_WS_URL ? "connecting" : "offline",
-  );
 
-  const socketRef = useRef<WebSocket | null>(null);
-  const lastSentRef = useRef(0);
+  const { connectionStatus, send, subscribe } = useSocket();
   const color = useMemo(() => colorForGuest(guestNumber), [guestNumber]);
 
-  // Connect to the presence backend when one is configured. With no backend
-  // (e.g. local dev, or before it's deployed) we stay fully functional in a
-  // solo/offline mode: you're always "1 active user" and see no remote cursors.
+  // Keep a ref of the latest name so callbacks (join/cursor-move) sent from
+  // effects/timers don't need `name` in their dependency arrays.
+  const nameRef = useRef(name);
+  nameRef.current = name;
+
+  const lastSentRef = useRef(0);
+  const hasJoinedRef = useRef(false);
+
+  // Send `join` once per (re)connect. `connectionStatus` flips to "online"
+  // right after the handshake; it never goes "offline" again once configured
+  // (only "connecting" <-> "online"), so guard with a ref to avoid re-joining
+  // on unrelated re-renders.
   useEffect(() => {
-    if (!PRESENCE_WS_URL) return;
-
-    let cancelled = false;
-    let reconnectTimer: number | undefined;
-
-    const connect = () => {
-      const socket = new WebSocket(PRESENCE_WS_URL);
-      socketRef.current = socket;
-
-      socket.addEventListener("open", () => {
-        if (cancelled) return;
-        setConnectionStatus("online");
-        socket.send(
-          JSON.stringify({
-            type: "join",
-            id: guestId,
-            guestNumber,
-            name,
-            color,
-          }),
-        );
+    if (connectionStatus === "online" && !hasJoinedRef.current) {
+      hasJoinedRef.current = true;
+      send({
+        type: "join",
+        id: guestId,
+        guestNumber,
+        name: nameRef.current,
+        color,
       });
+    }
+    if (connectionStatus === "connecting") {
+      hasJoinedRef.current = false;
+    }
+  }, [connectionStatus, guestId, guestNumber, color, send]);
 
-      socket.addEventListener("message", (event) => {
-        try {
-          const payload = JSON.parse(event.data);
-          if (payload.type === "presence-sync") {
-            setActiveUsers(payload.activeUsers ?? 1);
-            setRemoteCursors(
-              (payload.cursors ?? []).filter(
-                (c: RemoteCursor) => c.id !== guestId,
-              ),
-            );
-          } else if (payload.type === "cursor-move") {
-            const cursor: RemoteCursor = payload.cursor;
-            if (cursor.id === guestId) return;
-            setRemoteCursors((prev) => {
-              const next = prev.filter((c) => c.id !== cursor.id);
-              next.push(cursor);
-              return next;
-            });
-          } else if (payload.type === "user-left") {
-            setRemoteCursors((prev) => prev.filter((c) => c.id !== payload.id));
-            if (typeof payload.activeUsers === "number")
-              setActiveUsers(payload.activeUsers);
-          } else if (payload.type === "active-users") {
-            setActiveUsers(payload.count ?? 1);
-          }
-        } catch {
-          // Ignore malformed frames rather than crashing the UI.
-        }
+  useEffect(() => {
+    const unsubscribeSync = subscribe("presence-sync", (payload) => {
+      setActiveUsers((payload.activeUsers as number) ?? 1);
+      setRemoteCursors(
+        ((payload.cursors as RemoteCursor[]) ?? []).filter(
+          (cursor) => cursor.id !== guestId,
+        ),
+      );
+    });
+
+    const unsubscribeMove = subscribe("cursor-move", (payload) => {
+      const cursor = payload.cursor as RemoteCursor | undefined;
+      if (!cursor || cursor.id === guestId) return;
+      setRemoteCursors((prev) => {
+        const next = prev.filter((c) => c.id !== cursor.id);
+        next.push(cursor);
+        return next;
       });
+    });
 
-      socket.addEventListener("close", () => {
-        if (cancelled) return;
-        setConnectionStatus("connecting");
-        reconnectTimer = window.setTimeout(connect, 2000);
-      });
+    const unsubscribeLeft = subscribe("user-left", (payload) => {
+      setRemoteCursors((prev) =>
+        prev.filter((cursor) => cursor.id !== payload.id),
+      );
+      if (typeof payload.activeUsers === "number")
+        setActiveUsers(payload.activeUsers);
+    });
 
-      socket.addEventListener("error", () => {
-        socket.close();
-      });
-    };
-
-    connect();
+    const unsubscribeActive = subscribe("active-users", (payload) => {
+      setActiveUsers((payload.count as number) ?? 1);
+    });
 
     return () => {
-      cancelled = true;
-      window.clearTimeout(reconnectTimer);
-      socketRef.current?.close();
-      socketRef.current = null;
+      unsubscribeSync();
+      unsubscribeMove();
+      unsubscribeLeft();
+      unsubscribeActive();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guestId]);
+  }, [subscribe, guestId]);
 
   // Drop remote cursors that stop reporting in (tab closed without a clean close frame).
   useEffect(() => {
-    if (!PRESENCE_WS_URL) return;
     const interval = window.setInterval(() => {
       const cutoff = Date.now() - REMOTE_CURSOR_TIMEOUT_MS;
       setRemoteCursors((prev) => prev.filter((c) => c.updatedAt >= cutoff));
@@ -197,40 +178,31 @@ export function PresenceProvider({ children }: { children: ReactNode }) {
       if (!trimmed) return;
       setNameState(trimmed);
       window.localStorage.setItem(GUEST_NAME_KEY, trimmed);
-      if (socketRef.current?.readyState === WebSocket.OPEN) {
-        socketRef.current.send(
-          JSON.stringify({ type: "rename", id: guestId, name: trimmed }),
-        );
-      }
+      send({ type: "rename", id: guestId, name: trimmed });
     },
-    [guestId],
+    [guestId, send],
   );
 
   const reportCursor = useCallback(
     (nx: number, ny: number) => {
-      const socket = socketRef.current;
-      if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
       const now = Date.now();
       if (now - lastSentRef.current < CURSOR_BROADCAST_MS) return;
       lastSentRef.current = now;
 
-      socket.send(
-        JSON.stringify({
-          type: "cursor-move",
-          cursor: {
-            id: guestId,
-            name,
-            guestNumber,
-            color,
-            x: nx,
-            y: ny,
-            updatedAt: now,
-          },
-        }),
-      );
+      send({
+        type: "cursor-move",
+        cursor: {
+          id: guestId,
+          name: nameRef.current,
+          guestNumber,
+          color,
+          x: nx,
+          y: ny,
+          updatedAt: now,
+        },
+      });
     },
-    [guestId, name, guestNumber, color],
+    [guestId, guestNumber, color, send],
   );
 
   const value = useMemo<PresenceContextValue>(

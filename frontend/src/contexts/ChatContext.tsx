@@ -1,15 +1,28 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { ChatMessage, ConnectionStatus } from '../types';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import type { ChatMessage, ConnectionStatus } from "../types";
+import { useSocket } from "./SocketContext";
+import { usePresence } from "./PresenceContext";
 
-const CANNED_REPLIES = [
-  "Thanks for stopping by — this chat runs on a mocked WebSocket layer for the demo.",
-  "Good question. In production this would hit a real socket server, but here it's all client-side.",
-  "I'm mid-build on a few things right now, but feel free to look around the projects section.",
-  "That's on the roadmap! Check the IoT panel below for a preview of what's next.",
-];
+/** If no `typing`/`stopped-typing` refresh arrives within this window, assume they stopped. */
+const TYPING_TIMEOUT_MS = 4_000;
 
 let messageId = 0;
-const nextId = () => `msg-${Date.now()}-${messageId++}`;
+const nextLocalId = () => `local-${Date.now()}-${messageId++}`;
+
+function randomMessageId() {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : nextLocalId();
+}
 
 interface ChatContextValue {
   isOpen: boolean;
@@ -18,6 +31,11 @@ interface ChatContextValue {
   toggle: () => void;
   messages: ChatMessage[];
   sendMessage: (text: string) => void;
+  /** Call while the visitor is actively composing, throttled by the caller. */
+  notifyTyping: () => void;
+  /** Call on send/blur/clear to immediately signal typing has stopped. */
+  notifyStoppedTyping: () => void;
+  /** True when at least one other visitor is currently typing. */
   isTyping: boolean;
   connectionStatus: ConnectionStatus;
   unreadCount: number;
@@ -27,64 +45,131 @@ const ChatContext = createContext<ChatContextValue | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const replyIndexRef = useRef(0);
+  const [typingGuestIds, setTypingGuestIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+
   const isOpenRef = useRef(isOpen);
   isOpenRef.current = isOpen;
 
-  // Simulate the socket handshake once on mount.
+  const { connectionStatus, send, subscribe } = useSocket();
+  const { guestId } = usePresence();
+
+  const announcedConnectedRef = useRef(false);
+  const typingTimeoutsRef = useRef(new Map<string, number>());
+
+  // Announce the live connection once per successful handshake.
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setConnectionStatus('online');
-      setMessages([
+    if (connectionStatus === "online" && !announcedConnectedRef.current) {
+      announcedConnectedRef.current = true;
+      setMessages((prev) => [
+        ...prev,
         {
-          id: nextId(),
-          author: 'system',
-          text: 'Connected. This is a mock backend for demo purposes.',
-          timestamp: Date.now(),
-        },
-        {
-          id: nextId(),
-          author: 'roger',
-          text: "Hey! I'm not online right now, but leave a message and I'll get back to you.",
+          id: nextLocalId(),
+          author: "system",
+          text: "Connected. You're chatting live with other visitors on the site.",
           timestamp: Date.now(),
         },
       ]);
-    }, 900);
+    }
+  }, [connectionStatus]);
 
-    return () => window.clearTimeout(timer);
-  }, []);
+  useEffect(() => {
+    const clearTypingFor = (id: string) => {
+      window.clearTimeout(typingTimeoutsRef.current.get(id));
+      typingTimeoutsRef.current.delete(id);
+      setTypingGuestIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    };
 
-  const sendMessage = useCallback((text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+    const unsubscribeChat = subscribe("chat-message", (payload) => {
+      const incoming = payload.message as
+        | {
+            id: string;
+            guestId: string;
+            name: string;
+            text: string;
+            timestamp: number;
+          }
+        | undefined;
+      if (!incoming) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { id: nextId(), author: 'visitor', text: trimmed, timestamp: Date.now() },
-    ]);
-
-    setIsTyping(true);
-    const delay = 900 + Math.random() * 900;
-
-    window.setTimeout(() => {
-      setIsTyping(false);
-      const reply = CANNED_REPLIES[replyIndexRef.current % CANNED_REPLIES.length];
-      replyIndexRef.current += 1;
+      const isSelf = incoming.guestId === guestId;
 
       setMessages((prev) => [
         ...prev,
-        { id: nextId(), author: 'roger', text: reply, timestamp: Date.now() },
+        {
+          id: incoming.id,
+          author: isSelf ? "visitor" : "guest",
+          name: isSelf ? undefined : incoming.name,
+          text: incoming.text,
+          timestamp: incoming.timestamp,
+        },
       ]);
 
-      if (!isOpenRef.current) {
-        setUnreadCount((count) => count + 1);
+      if (!isSelf) {
+        clearTypingFor(incoming.guestId);
+        if (!isOpenRef.current) setUnreadCount((count) => count + 1);
       }
-    }, delay);
-  }, []);
+    });
+
+    const unsubscribeTyping = subscribe("typing", (payload) => {
+      const id = payload.id as string | undefined;
+      if (!id || id === guestId) return;
+
+      setTypingGuestIds((prev) => {
+        if (prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.add(id);
+        return next;
+      });
+
+      window.clearTimeout(typingTimeoutsRef.current.get(id));
+      typingTimeoutsRef.current.set(
+        id,
+        window.setTimeout(() => clearTypingFor(id), TYPING_TIMEOUT_MS),
+      );
+    });
+
+    const unsubscribeStoppedTyping = subscribe("stopped-typing", (payload) => {
+      const id = payload.id as string | undefined;
+      if (!id || id === guestId) return;
+      clearTypingFor(id);
+    });
+
+    return () => {
+      unsubscribeChat();
+      unsubscribeTyping();
+      unsubscribeStoppedTyping();
+      typingTimeoutsRef.current.forEach((timeoutId) =>
+        window.clearTimeout(timeoutId),
+      );
+      typingTimeoutsRef.current.clear();
+    };
+  }, [subscribe, guestId]);
+
+  const sendMessage = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed) return;
+      send({ type: "chat-message", id: randomMessageId(), text: trimmed });
+    },
+    [send],
+  );
+
+  const notifyTyping = useCallback(() => {
+    send({ type: "typing" });
+  }, [send]);
+
+  const notifyStoppedTyping = useCallback(() => {
+    send({ type: "stopped-typing" });
+  }, [send]);
 
   const open = useCallback(() => {
     setIsOpen(true);
@@ -99,17 +184,40 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  return (
-    <ChatContext.Provider
-      value={{ isOpen, open, close, toggle, messages, sendMessage, isTyping, connectionStatus, unreadCount }}
-    >
-      {children}
-    </ChatContext.Provider>
+  const value = useMemo<ChatContextValue>(
+    () => ({
+      isOpen,
+      open,
+      close,
+      toggle,
+      messages,
+      sendMessage,
+      notifyTyping,
+      notifyStoppedTyping,
+      isTyping: typingGuestIds.size > 0,
+      connectionStatus,
+      unreadCount,
+    }),
+    [
+      isOpen,
+      open,
+      close,
+      toggle,
+      messages,
+      sendMessage,
+      notifyTyping,
+      notifyStoppedTyping,
+      typingGuestIds,
+      connectionStatus,
+      unreadCount,
+    ],
   );
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
 }
 
 export function useChat() {
   const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChat must be used within a ChatProvider');
+  if (!ctx) throw new Error("useChat must be used within a ChatProvider");
   return ctx;
 }

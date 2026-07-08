@@ -1,5 +1,6 @@
 import { MotionConfig } from "framer-motion";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { SocketProvider } from "./contexts/SocketContext";
 import { ChatProvider } from "./contexts/ChatContext";
 import { PresenceProvider } from "./contexts/PresenceContext";
 import { FeatureFlagProvider } from "./contexts/FeatureFlagContext";
@@ -21,30 +22,32 @@ function App() {
     <MotionConfig reducedMotion="user">
       <ThemeProvider>
         <FeatureFlagProvider>
-          <PresenceProvider>
-            <ChatProvider>
-              <SmoothScroll>
-                <a href="#main-content" className="skip-link">
-                  Skip to content
-                </a>
+          <SocketProvider>
+            <PresenceProvider>
+              <ChatProvider>
+                <SmoothScroll>
+                  <a href="#main-content" className="skip-link">
+                    Skip to content
+                  </a>
 
-                <ScrollProgress />
-                <SiteHeader />
-                <main id="main-content" className="relative z-10">
-                  <Hero />
-                  <About />
-                  <Experience />
-                  <Projects />
-                  <Contact />
-                </main>
+                  <ScrollProgress />
+                  <SiteHeader />
+                  <main id="main-content" className="relative z-10">
+                    <Hero />
+                    <About />
+                    <Experience />
+                    <Projects />
+                    <Contact />
+                  </main>
 
-                <Footer />
-                <ChatPlayground />
-                <LiveCursors />
-                {import.meta.env.DEV && <FeatureFlagsPanel />}
-              </SmoothScroll>
-            </ChatProvider>
-          </PresenceProvider>
+                  <Footer />
+                  <ChatPlayground />
+                  <LiveCursors />
+                  {import.meta.env.DEV && <FeatureFlagsPanel />}
+                </SmoothScroll>
+              </ChatProvider>
+            </PresenceProvider>
+          </SocketProvider>
         </FeatureFlagProvider>
       </ThemeProvider>
     </MotionConfig>

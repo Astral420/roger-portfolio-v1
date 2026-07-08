@@ -16,6 +16,8 @@ export interface Project {
   githubUrl?: string;
   liveUrl?: string;
   image: string;
+  /** True if this project is actively being worked on right now. */
+  inProgress?: boolean;
 }
 
 export type ExperienceType =
@@ -39,7 +41,10 @@ export interface SpotifyTrack {
 
 export interface ChatMessage {
   id: string;
-  author: "visitor" | "roger" | "system";
+  /** "guest" covers any other visitor's message — see `name` for who sent it. */
+  author: "visitor" | "guest" | "system";
+  /** Display name of the sender; set for "guest" messages, omitted for your own/system. */
+  name?: string;
   text: string;
   timestamp: number;
 }
@@ -52,7 +57,7 @@ export interface RemoteCursor {
   name: string;
   guestNumber: number;
   color: string;
-  /** Normalized 0..1 viewport-relative coordinates, so they map across screen sizes. */
+  /** Normalized 0..1 document/page coordinates, so cursors stay in the same section across visitors. */
   x: number;
   y: number;
   updatedAt: number;
