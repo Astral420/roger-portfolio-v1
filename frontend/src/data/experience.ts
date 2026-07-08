@@ -8,8 +8,7 @@ export const experienceItems: ExperienceItem[] = [
     title: "Graduated B.S. Information Technology",
     organization: "STI College Malolos",
     period: "June 2026",
-    description:
-      "Shipped internal tooling for the platform team, building a Laravel + React admin dashboard that cut manual reporting time from days to minutes.",
+    description: "Graduated with a GWA of 1.55",
   },
   {
     id: "exp-02",
@@ -18,7 +17,7 @@ export const experienceItems: ExperienceItem[] = [
     organization: "SOCIA",
     period: "Feb 2026 - May 2026",
     description:
-      "Focused on distributed systems and mobile development. Capstone project explored offline-first sync strategies for low-connectivity environments.",
+      "Learned scalable system design through projects and production-level deployments. Also contributed to UI/UX design decisions.",
     tags: ["System Design", "Full Stack Development", "Databases"],
   },
   {
@@ -29,6 +28,6 @@ export const experienceItems: ExperienceItem[] = [
     period: "Feb 2025 - Oct 2025",
     description:
       "Built KnockSense, an IoT based web & mobile system that acts as a faculty smart lock, attendance and scheduling system.",
-    tags: ["React Native", "Arduino", "Firebase", "React"],
+    tags: ["Flutter", "Arduino", "Firebase", "React", "Hardware & Electronics"],
   },
 ];

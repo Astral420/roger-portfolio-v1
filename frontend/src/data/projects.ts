@@ -7,7 +7,7 @@ export const projects: Project[] = [
     number: "01",
     name: "KnockSense",
     description:
-      "A real-time expense-sharing app for households, with automatic settlement suggestions and offline-first sync across devices.",
+      "A real-time faculty monitoring and attendance system with RFID door lock system.",
     role: "Project Lead and Lead Developer",
     techStack: [
       "Flutter",
@@ -17,6 +17,7 @@ export const projects: Project[] = [
       "Javascript",
       "React",
       "TailwindCSS",
+      "Google Cloud Scheduler",
     ],
     architecture:
       "Event-sourced ledger with a Node/Express API, Postgres for durable state, and Redis for session and settlement caching. Client uses Expo with a local SQLite mirror for offline-first reads.",

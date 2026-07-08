@@ -30,6 +30,11 @@ const MODEL_ZOOM = 1.2;
 // Target height (world units) the model's full bounding box is normalized
 // to, before MODEL_ZOOM is applied.
 const TARGET_HEIGHT = 2.2;
+// Brightens (>1) or darkens (<1) the model's own textures/materials,
+// independent of scene lighting. 1 = untouched. This multiplies each
+// material's base color, so it scales however dark/light the source
+// textures already are.
+let MODEL_TEXTURE_EXPOSURE = 1.8;
 
 export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
   const groupRef = useRef<Group>(null);
@@ -64,21 +69,50 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
     modelRef.current.scale.setScalar(
       (TARGET_HEIGHT / tallestAxis) * MODEL_ZOOM,
     );
+
+    if (MODEL_TEXTURE_EXPOSURE !== 1) {
+      scene.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const materials = Array.isArray(child.material)
+          ? child.material
+          : [child.material];
+        for (const material of materials) {
+          if (
+            material instanceof THREE.MeshStandardMaterial ||
+            material instanceof THREE.MeshPhysicalMaterial ||
+            material instanceof THREE.MeshBasicMaterial ||
+            material instanceof THREE.MeshLambertMaterial ||
+            material instanceof THREE.MeshPhongMaterial
+          ) {
+            material.color.multiplyScalar(MODEL_TEXTURE_EXPOSURE);
+            material.needsUpdate = true;
+          }
+        }
+      });
+    }
   }, [scene]);
 
   useFrame((state, delta) => {
     if (!groupRef.current) return;
 
+    // Clamp delta so a stalled tab (backgrounded/minimized) resuming with a
+    // huge elapsed time doesn't feed a giant timestep into the lerps below
+    // and make the model whip around wildly for a moment.
+    const dt = Math.min(delta, 1 / 30);
+    // Frame-rate independent damping factor: converges toward 1 smoothly and
+    // never overshoots the target, unlike a raw `delta * rate` lerp factor.
+    const damp = (rate: number) => 1 - Math.exp(-rate * dt);
+
     if (reducedMotion) {
       groupRef.current.rotation.y = THREE.MathUtils.lerp(
         groupRef.current.rotation.y,
         0,
-        delta * 4,
+        damp(4),
       );
       groupRef.current.position.y = THREE.MathUtils.lerp(
         groupRef.current.position.y,
         0,
-        delta * 4,
+        damp(4),
       );
       return;
     }
@@ -98,12 +132,12 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
     groupRef.current.rotation.y = THREE.MathUtils.lerp(
       groupRef.current.rotation.y,
       targetY,
-      delta * 2.2,
+      damp(2.2),
     );
     groupRef.current.rotation.x = THREE.MathUtils.lerp(
       groupRef.current.rotation.x,
       targetX,
-      delta * 2.2,
+      damp(2.2),
     );
   });
 

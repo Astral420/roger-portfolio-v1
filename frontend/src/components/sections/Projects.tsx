@@ -71,11 +71,13 @@ function ProjectCard({
   index,
   total,
   forcedHeight,
+  stackEnabled,
 }: {
   project: Project;
   index: number;
   total: number;
   forcedHeight?: number;
+  stackEnabled: boolean;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
@@ -96,7 +98,9 @@ function ProjectCard({
   return (
     <div
       ref={cardRef}
-      className={isLast ? "relative" : "sticky top-20 md:top-24"}
+      className={
+        stackEnabled && !isLast ? "sticky top-20 md:top-24" : "relative"
+      }
       style={{ zIndex: index + 1 }}
     >
       <motion.div
@@ -108,7 +112,15 @@ function ProjectCard({
         transition={{ duration: 0.6, ease: easing }}
         className="rounded-2xl border border-border/10 bg-bg p-6 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.5)] md:p-10"
       >
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
+        <div
+          data-project-card-content
+          className="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12"
+        >
+          {/* Preview */}
+          <div className="order-first flex items-center md:order-none">
+            <ProjectPreview project={project} index={index} />
+          </div>
+
           {/* Engineering info */}
           <div className="flex flex-col">
             <span className="font-mono text-sm text-accent-from">
@@ -176,11 +188,6 @@ function ProjectCard({
               )}
             </div>
           </div>
-
-          {/* Preview */}
-          <div className="flex items-center">
-            <ProjectPreview project={project} index={index} />
-          </div>
         </div>
       </motion.div>
     </div>
@@ -189,6 +196,9 @@ function ProjectCard({
 
 export function Projects() {
   const { isProjectEnabled } = useFeatureFlags();
+  const [isDesktopStack, setIsDesktopStack] = useState(
+    () => window.matchMedia("(min-width: 768px)").matches,
+  );
   const visibleProjects = projects.filter((project) =>
     isProjectEnabled(project.id),
   );
@@ -199,8 +209,26 @@ export function Projects() {
     .join("|");
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(min-width: 768px)");
+
+    const updateStackMode = (event: MediaQueryListEvent | MediaQueryList) => {
+      setIsDesktopStack(event.matches);
+    };
+
+    updateStackMode(mediaQuery);
+    mediaQuery.addEventListener("change", updateStackMode);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateStackMode);
+    };
+  }, []);
+
+  useEffect(() => {
     const cardsContainer = cardsRef.current;
-    if (!cardsContainer) return;
+    if (!cardsContainer || !isDesktopStack) {
+      setStackCardHeight(null);
+      return;
+    }
 
     const cards = Array.from(
       cardsContainer.querySelectorAll<HTMLElement>("[data-project-card]"),
@@ -211,10 +239,31 @@ export function Projects() {
       return;
     }
 
+    const contentNodes = cards
+      .map((card) =>
+        card.querySelector<HTMLElement>("[data-project-card-content]"),
+      )
+      .filter((node): node is HTMLElement => Boolean(node));
+
+    const getIntrinsicCardHeight = (card: HTMLElement) => {
+      const content = card.querySelector<HTMLElement>(
+        "[data-project-card-content]",
+      );
+      if (!content) return card.offsetHeight;
+
+      const styles = window.getComputedStyle(card);
+      const verticalChrome =
+        parseFloat(styles.paddingTop) +
+        parseFloat(styles.paddingBottom) +
+        parseFloat(styles.borderTopWidth) +
+        parseFloat(styles.borderBottomWidth);
+
+      return content.offsetHeight + verticalChrome;
+    };
+
     const syncStackCardHeight = () => {
       const nextHeight = cards.reduce(
-        (maxHeight, card) =>
-          Math.max(maxHeight, card.getBoundingClientRect().height),
+        (maxHeight, card) => Math.max(maxHeight, getIntrinsicCardHeight(card)),
         0,
       );
 
@@ -230,15 +279,18 @@ export function Projects() {
       });
     };
 
-    syncStackCardHeight();
+    const rafId = window.requestAnimationFrame(syncStackCardHeight);
 
     const observer = new ResizeObserver(syncStackCardHeight);
     cards.forEach((card) => observer.observe(card));
+    contentNodes.forEach((content) => observer.observe(content));
+    observer.observe(cardsContainer);
 
     return () => {
+      window.cancelAnimationFrame(rafId);
       observer.disconnect();
     };
-  }, [visibleProjectKey]);
+  }, [visibleProjectKey, isDesktopStack]);
 
   return (
     <section
@@ -272,7 +324,10 @@ export function Projects() {
               project={project}
               index={index}
               total={visibleProjects.length}
-              forcedHeight={stackCardHeight ?? undefined}
+              forcedHeight={
+                isDesktopStack ? (stackCardHeight ?? undefined) : undefined
+              }
+              stackEnabled={isDesktopStack}
             />
           ))}
         </div>

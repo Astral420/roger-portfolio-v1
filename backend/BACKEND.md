@@ -181,3 +181,80 @@ backend/
   package.json
   tsconfig.json
 ```
+
+## 11. Current implemented backend (feature-based monolith)
+
+The backend now includes an Express + TypeScript feature-monolith foundation with
+Spotify "now playing" integration.
+
+### Folder structure
+
+```
+backend/
+  src/
+    app.ts
+    server.ts
+    common/
+      config/env.ts
+      errors/http-error.ts
+      middleware/
+        error-handler.ts
+        not-found-handler.ts
+      types/spotify.ts
+    features/
+      health/
+        health.controller.ts
+        health.routes.ts
+      spotify/
+        spotify.client.ts
+        spotify.mapper.ts
+        spotify.service.ts
+        spotify.controller.ts
+        spotify.routes.ts
+    routes/
+      index.ts
+      root.routes.ts
+      api.routes.ts
+```
+
+### Endpoints
+
+- `GET /health` — basic health check.
+- `GET /api/health` — same health check under API namespace.
+- `GET /api/spotify/auth/start` — starts Spotify OAuth in browser.
+- `GET /api/spotify/auth/callback` — exchanges auth code and returns tokens (including refresh token).
+- `GET /api/spotify/now-playing` — returns:
+
+```json
+{
+  "song": "Track name",
+  "artist": "Artist name",
+  "isPlaying": true
+}
+```
+
+When nothing is currently playing, the endpoint returns a stable fallback payload:
+
+```json
+{
+  "song": "Not playing",
+  "artist": "Spotify",
+  "isPlaying": false
+}
+```
+
+### Environment variables for the implemented server
+
+```
+PORT=8080
+ALLOWED_ORIGIN=https://yourdomain.com
+SPOTIFY_CLIENT_ID=...
+SPOTIFY_CLIENT_SECRET=...
+SPOTIFY_REFRESH_TOKEN=...
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:8080/api/spotify/auth/callback
+SPOTIFY_SCOPES=user-read-currently-playing,user-read-playback-state
+SPOTIFY_SHOW_DIALOG=true
+```
+
+- `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET` are required to use auth helper endpoints.
+- `SPOTIFY_REFRESH_TOKEN` is required for `/api/spotify/now-playing`.

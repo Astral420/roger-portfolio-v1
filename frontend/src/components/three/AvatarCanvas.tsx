@@ -1,8 +1,25 @@
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { AvatarScene } from './AvatarScene';
-import { usePointerPosition } from '../../hooks/usePointerPosition';
-import { useReducedMotionPreference } from '../../hooks/useReducedMotion';
+import { Suspense, useEffect, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { AvatarScene } from "./AvatarScene";
+import { usePointerPosition } from "../../hooks/usePointerPosition";
+import { useReducedMotionPreference } from "../../hooks/useReducedMotion";
+
+/** Tracks document visibility so the R3F render loop can pause while the tab is hidden. */
+function useIsDocumentVisible() {
+  const [visible, setVisible] = useState(
+    () => document.visibilityState === "visible",
+  );
+
+  useEffect(() => {
+    const onVisibilityChange = () =>
+      setVisible(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, []);
+
+  return visible;
+}
 
 function CanvasLoader() {
   return (
@@ -16,6 +33,7 @@ function CanvasLoader() {
 export default function AvatarCanvas() {
   const pointer = usePointerPosition();
   const reducedMotion = useReducedMotionPreference();
+  const isVisible = useIsDocumentVisible();
 
   return (
     <div className="relative h-full w-full" aria-hidden="true">
@@ -25,8 +43,15 @@ export default function AvatarCanvas() {
           camera={{ position: [0, 0, 5], fov: 40 }}
           gl={{ antialias: true, alpha: true }}
           performance={{ min: 0.5 }}
+          // Fully stop rendering/animating while the tab is hidden or the
+          // window is unfocused, instead of letting a huge accumulated delta
+          // fire the moment the tab regains focus (which made the model spin).
+          frameloop={isVisible ? "always" : "never"}
         >
-          <AvatarScene pointer={{ nx: pointer.nx, ny: pointer.ny }} reducedMotion={reducedMotion} />
+          <AvatarScene
+            pointer={{ nx: pointer.nx, ny: pointer.ny }}
+            reducedMotion={reducedMotion}
+          />
         </Canvas>
       </Suspense>
     </div>

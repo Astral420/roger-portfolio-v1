@@ -3,7 +3,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { ChatProvider } from "./contexts/ChatContext";
 import { PresenceProvider } from "./contexts/PresenceContext";
 import { FeatureFlagProvider } from "./contexts/FeatureFlagContext";
-import { AmbientLighting } from "./components/layout/AmbientLighting";
+import { SmoothScroll } from "./components/layout/SmoothScroll";
 import { ScrollProgress } from "./components/layout/ScrollProgress";
 import { SiteHeader } from "./components/layout/SiteHeader";
 import { Footer } from "./components/layout/Footer";
@@ -23,26 +23,26 @@ function App() {
         <FeatureFlagProvider>
           <PresenceProvider>
             <ChatProvider>
-              <a href="#main-content" className="skip-link">
-                Skip to content
-              </a>
+              <SmoothScroll>
+                <a href="#main-content" className="skip-link">
+                  Skip to content
+                </a>
 
-              <ScrollProgress />
-              <AmbientLighting />
-              <SiteHeader />
+                <ScrollProgress />
+                <SiteHeader />
+                <main id="main-content" className="relative z-10">
+                  <Hero />
+                  <About />
+                  <Experience />
+                  <Projects />
+                  <Contact />
+                </main>
 
-              <main id="main-content" className="relative z-10">
-                <Hero />
-                <About />
-                <Experience />
-                <Projects />
-                <Contact />
-              </main>
-
-              <Footer />
-              <ChatPlayground />
-              <LiveCursors />
-              {import.meta.env.DEV && <FeatureFlagsPanel />}
+                <Footer />
+                <ChatPlayground />
+                <LiveCursors />
+                {import.meta.env.DEV && <FeatureFlagsPanel />}
+              </SmoothScroll>
             </ChatProvider>
           </PresenceProvider>
         </FeatureFlagProvider>
