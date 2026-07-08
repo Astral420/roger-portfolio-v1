@@ -23,6 +23,10 @@ function ProjectPreview({
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const hasImage = Boolean(project.image) && !imageFailed;
+  const imageFitClass =
+    project.previewFit === "cover" ? "object-cover" : "object-contain";
+  const imagePositionClass =
+    project.previewPosition === "top" ? "object-top" : "object-center";
 
   const gradients = [
     "from-[#6366F1]/25 via-[#3B82F6]/10 to-transparent",
@@ -32,7 +36,7 @@ function ProjectPreview({
 
   return (
     <div className="relative flex aspect-[4/3] w-full flex-col overflow-hidden rounded-xl border border-border/10 bg-bg-elevated">
-      <div className="flex shrink-0 items-center gap-1.5 border-b border-border/8 px-4 py-3">
+      <div className="flex shrink-0 items-center gap-1.5 px-4 py-3">
         <span className="h-2.5 w-2.5 rounded-full bg-tertiary/30" />
         <span className="h-2.5 w-2.5 rounded-full bg-tertiary/30" />
         <span className="h-2.5 w-2.5 rounded-full bg-tertiary/30" />
@@ -48,7 +52,7 @@ function ProjectPreview({
             alt={`${project.name} screenshot`}
             loading="lazy"
             onError={() => setImageFailed(true)}
-            className="h-full w-full object-contain"
+            className={`h-full w-full ${imageFitClass} ${imagePositionClass}`}
           />
         ) : (
           <div

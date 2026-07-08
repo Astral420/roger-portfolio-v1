@@ -16,6 +16,10 @@ export interface Project {
   githubUrl?: string;
   liveUrl?: string;
   image: string;
+  /** How the screenshot should fit the fixed project preview frame. */
+  previewFit?: "contain" | "cover";
+  /** Vertical anchor used when previewFit is "cover". */
+  previewPosition?: "center" | "top";
   /** True if this project is actively being worked on right now. */
   inProgress?: boolean;
 }
