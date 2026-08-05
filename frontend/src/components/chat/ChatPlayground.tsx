@@ -156,6 +156,15 @@ export function ChatPlayground() {
   useEffect(() => {
     if (!isOpen) return;
 
+    // Scroll-to-close is a desktop-only pattern (mouse-wheel / page scroll while
+    // the chat is open). On touch devices the viewport scroll is triggered by
+    // the keyboard appearing or by the user scrolling the message list — both
+    // should NOT close the panel. Backdrop-tap and the X button handle closing
+    // on mobile.
+    const isTouchDevice = window.matchMedia(
+      "(hover: none) and (pointer: coarse)",
+    ).matches;
+
     let armed = false;
     let viewportSettlingTimer: number | undefined;
     const armTimer = window.setTimeout(() => {
@@ -187,14 +196,19 @@ export function ChatPlayground() {
       capture: true,
       passive: true,
     });
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    // Only attach the scroll-to-close listener on non-touch (desktop) devices.
+    if (!isTouchDevice) {
+      window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    }
     window.addEventListener("resize", handleViewportResize, { passive: true });
     handleViewportResize();
     return () => {
       window.clearTimeout(armTimer);
       if (viewportSettlingTimer) window.clearTimeout(viewportSettlingTimer);
       window.removeEventListener("wheel", handleWindowWheel, true);
-      window.removeEventListener("scroll", handleWindowScroll);
+      if (!isTouchDevice) {
+        window.removeEventListener("scroll", handleWindowScroll);
+      }
       window.removeEventListener("resize", handleViewportResize);
     };
   }, [isOpen, close]);
