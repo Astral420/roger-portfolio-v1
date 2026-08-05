@@ -180,7 +180,7 @@ export function ChatPlayground() {
     };
 
     const handleWindowScroll = () => {
-      if (armed && !isPointerInsideRef.current) close();
+      if (armed && !isPointerInsideRef.current && !isViewportSettlingRef.current) close();
     };
 
     window.addEventListener("wheel", handleWindowWheel, {
@@ -208,6 +208,14 @@ export function ChatPlayground() {
 
   useEffect(() => {
     if (!isOpen) return;
+
+    // Skip auto-focus on touch/coarse-pointer devices — the mobile keyboard
+    // appearing causes a viewport resize → scroll chain that would immediately
+    // close the panel. Users on touch devices tap the input themselves.
+    const isTouchDevice = window.matchMedia(
+      "(hover: none) and (pointer: coarse)",
+    ).matches;
+    if (isTouchDevice) return;
 
     const rafId = window.requestAnimationFrame(() => {
       if (!isViewportSettlingRef.current) inputRef.current?.focus();
