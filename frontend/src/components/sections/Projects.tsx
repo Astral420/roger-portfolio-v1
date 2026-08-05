@@ -1,10 +1,84 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowUpRight, Hammer } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { ArrowUpRight, Hammer, ZoomIn, X } from "lucide-react";
 import { projects } from "../../data/projects";
 import type { Project } from "../../types";
 import { GithubMark } from "../ui/BrandIcons";
 import { useFeatureFlags } from "../../contexts/FeatureFlagContext";
+
+// ---------------------------------------------------------------------------
+// ImageLightbox
+// ---------------------------------------------------------------------------
+
+function ImageLightbox({
+  src,
+  alt,
+  onClose,
+}: {
+  src: string;
+  alt: string;
+  onClose: () => void;
+}) {
+  // Lock body scroll while open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return createPortal(
+    <motion.div
+      key="lightbox-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25, ease: "easeInOut" }}
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)" }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Preview: ${alt}`}
+    >
+      {/* Close button */}
+      <button
+        onClick={onClose}
+        aria-label="Close preview"
+        className="absolute top-5 right-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white/80 backdrop-blur-sm transition-colors hover:bg-white/20 hover:text-white"
+      >
+        <X size={16} strokeWidth={2} />
+      </button>
+
+      {/* Image */}
+      <motion.img
+        key="lightbox-image"
+        src={src}
+        alt={alt}
+        initial={{ scale: 0.88, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.88, opacity: 0 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        // Stop click from bubbling to backdrop
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[88vh] max-w-[90vw] rounded-xl object-contain shadow-[0_32px_80px_-20px_rgba(0,0,0,0.9)]"
+        draggable={false}
+      />
+    </motion.div>,
+    document.body,
+  );
+}
 
 const easing = [0.22, 1, 0.36, 1] as const;
 
@@ -17,9 +91,11 @@ const easing = [0.22, 1, 0.36, 1] as const;
 function ProjectPreview({
   project,
   index,
+  onImageClick,
 }: {
   project: Project;
   index: number;
+  onImageClick?: () => void;
 }) {
   const [imageFailed, setImageFailed] = useState(false);
   const hasImage = Boolean(project.image) && !imageFailed;
@@ -47,13 +123,31 @@ function ProjectPreview({
 
       <div className="relative min-h-0 flex-1">
         {hasImage ? (
-          <img
-            src={project.image}
-            alt={`${project.name} screenshot`}
-            loading="lazy"
-            onError={() => setImageFailed(true)}
-            className={`h-full w-full ${imageFitClass} ${imagePositionClass}`}
-          />
+          // Clickable wrapper — triggers the lightbox
+          <button
+            type="button"
+            onClick={onImageClick}
+            aria-label={`View full-size screenshot of ${project.name}`}
+            className="group relative h-full w-full cursor-zoom-in focus-visible:outline-none"
+          >
+            <img
+              src={project.image}
+              alt={`${project.name} screenshot`}
+              loading="lazy"
+              onError={() => setImageFailed(true)}
+              className={`h-full w-full ${imageFitClass} ${imagePositionClass} transition-[filter] duration-300 group-hover:brightness-75`}
+            />
+            {/* Zoom badge — appears on hover */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+            >
+              <span className="flex items-center gap-1.5 rounded-full border border-white/20 bg-black/50 px-3.5 py-2 text-xs font-medium text-white shadow-lg backdrop-blur-sm">
+                <ZoomIn size={13} strokeWidth={2} />
+                View preview
+              </span>
+            </span>
+          </button>
         ) : (
           <div
             className={`relative h-full w-full bg-gradient-to-br ${gradients[index % gradients.length]}`}
@@ -75,15 +169,21 @@ function ProjectCard({
   index,
   total,
   forcedHeight,
+  isStackedLastCard,
   stackEnabled,
 }: {
   project: Project;
   index: number;
   total: number;
   forcedHeight?: number;
+  isStackedLastCard: boolean;
   stackEnabled: boolean;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const openLightbox = useCallback(() => setLightboxOpen(true), []);
+  const closeLightbox = useCallback(() => setLightboxOpen(false), []);
+
   const { scrollYProgress } = useScroll({
     target: cardRef,
     offset: ["start start", "end start"],
@@ -109,7 +209,12 @@ function ProjectCard({
     >
       <motion.div
         data-project-card
-        style={{ scale, opacity, minHeight: forcedHeight }}
+        style={{
+          scale,
+          opacity,
+          minHeight: forcedHeight,
+          willChange: isStackedLastCard ? "auto" : "transform, opacity",
+        }}
         initial={{ y: 40, opacity: 0 }}
         whileInView={{ y: 0, opacity: 1 }}
         viewport={{ once: true, margin: "-100px" }}
@@ -122,7 +227,7 @@ function ProjectCard({
         >
           {/* Preview */}
           <div className="order-first flex items-center md:order-none">
-            <ProjectPreview project={project} index={index} />
+            <ProjectPreview project={project} index={index} onImageClick={openLightbox} />
           </div>
 
           {/* Engineering info */}
@@ -202,6 +307,17 @@ function ProjectCard({
           </div>
         </div>
       </motion.div>
+
+      {/* Image lightbox — portal renders above all stacked cards */}
+      <AnimatePresence>
+        {lightboxOpen && project.image && (
+          <ImageLightbox
+            src={project.image}
+            alt={`${project.name} screenshot`}
+            onClose={closeLightbox}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -339,6 +455,7 @@ export function Projects() {
               forcedHeight={
                 isDesktopStack ? (stackCardHeight ?? undefined) : undefined
               }
+              isStackedLastCard={isDesktopStack && index === visibleProjects.length - 1}
               stackEnabled={isDesktopStack}
             />
           ))}

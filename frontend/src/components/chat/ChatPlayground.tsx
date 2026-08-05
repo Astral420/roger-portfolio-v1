@@ -144,6 +144,7 @@ export function ChatPlayground() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const isPointerInsideRef = useRef(false);
+  const isViewportSettlingRef = useRef(false);
 
   // The page stays scrollable while the chat is open (no body-scroll lock —
   // that used to hide the scrollbar and shift centered content sideways).
@@ -156,9 +157,18 @@ export function ChatPlayground() {
     if (!isOpen) return;
 
     let armed = false;
+    let viewportSettlingTimer: number | undefined;
     const armTimer = window.setTimeout(() => {
       armed = true;
     }, 200);
+
+    const handleViewportResize = () => {
+      isViewportSettlingRef.current = true;
+      if (viewportSettlingTimer) window.clearTimeout(viewportSettlingTimer);
+      viewportSettlingTimer = window.setTimeout(() => {
+        isViewportSettlingRef.current = false;
+      }, 250);
+    };
 
     const handleWindowWheel = (event: globalThis.WheelEvent) => {
       if (!armed) return;
@@ -178,10 +188,14 @@ export function ChatPlayground() {
       passive: true,
     });
     window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    window.addEventListener("resize", handleViewportResize, { passive: true });
+    handleViewportResize();
     return () => {
       window.clearTimeout(armTimer);
+      if (viewportSettlingTimer) window.clearTimeout(viewportSettlingTimer);
       window.removeEventListener("wheel", handleWindowWheel, true);
       window.removeEventListener("scroll", handleWindowScroll);
+      window.removeEventListener("resize", handleViewportResize);
     };
   }, [isOpen, close]);
 
@@ -193,7 +207,13 @@ export function ChatPlayground() {
   }, [messages, isTyping]);
 
   useEffect(() => {
-    if (isOpen) inputRef.current?.focus();
+    if (!isOpen) return;
+
+    const rafId = window.requestAnimationFrame(() => {
+      if (!isViewportSettlingRef.current) inputRef.current?.focus();
+    });
+
+    return () => window.cancelAnimationFrame(rafId);
   }, [isOpen]);
 
   const handleSend = () => {
@@ -311,11 +331,10 @@ export function ChatPlayground() {
                       </span>
                     )}
                     <div
-                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-                        isVisitor
+                      className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${isVisitor
                           ? "rounded-br-sm bg-accent-gradient text-white"
                           : "rounded-bl-sm bg-primary/[0.04] text-primary"
-                      }`}
+                        }`}
                     >
                       {msg.text}
                     </div>

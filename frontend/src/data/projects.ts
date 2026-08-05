@@ -84,7 +84,7 @@ export const projects: Project[] = [
   {
     id: "proj-04",
     number: "04",
-    name: "Trading Card Deduplication Tool",
+    name: "CardFlow",
     description:
       "Crops, deduplicates, and auto-rotates trading card scans to smoothen card entry into Card Dealer Pro.",
     role: "Solo Full Stack Developer",
@@ -100,15 +100,19 @@ export const projects: Project[] = [
       "Redis",
       "Cloudflare R2",
       "SQLAlchemy",
+      "Oracle Cloud",
+      "Vercel",
     ],
     architecture:
       "FastAPI handles auth, batch ingest, card review, and queue endpoints. Celery workers process extraction, cropping, hashing, and duplicate detection asynchronously. Postgres stores batches, scans, crops, users, and review state, while Redis powers the task queue. Cropped and raw images live in Cloudflare R2.",
     githubUrl: "https://github.com/roger/signal",
-    liveUrl: "",
+    liveUrl: "https://cardflowtool.tech",
     // TODO: drop a screenshot in public/projects/ and point this at it,
     // e.g. "/projects/signal.png". Empty string falls back to the gradient
     // placeholder.
-    image: "",
-    inProgress: true,
+    image: "/projects/cardflow.png",
+    inProgress: false,
+    previewFit: "cover",
+    previewPosition: "top",
   },
 ];
