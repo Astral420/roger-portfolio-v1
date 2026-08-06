@@ -24,7 +24,7 @@ export const projects: Project[] = [
       "ESP32-based RFID door lock, with Firebase Realtime for easy data correlation between client and hardware, running on Arduino Framework. GCP Scheduler for CRON jobs. Client runs on React for Web and Flutter for Mobile.",
     githubUrl: "https://github.com/Astral420/KnockSense",
     liveUrl: "",
-    image: "/projects/knocksense.png",
+    image: "/projects/webp/knocksense.webp",
     previewFit: "cover",
     previewPosition: "top",
     inProgress: false,
@@ -77,7 +77,7 @@ export const projects: Project[] = [
       "Laravel backend with PostgreSQL for core records, and MongoDB for profile/content data, and Redis for queues, caching, and real-time messaging alongside websockets.",
     githubUrl: "",
     liveUrl: "",
-    image: "/projects/JobSwipe.png",
+    image: "/projects/webp/JobSwipe.webp",
     previewFit: "cover",
     previewPosition: "top",
   },
@@ -111,7 +111,7 @@ export const projects: Project[] = [
     // TODO: drop a screenshot in public/projects/ and point this at it,
     // e.g. "/projects/signal.png". Empty string falls back to the gradient
     // placeholder.
-    image: "/projects/cardflow.png",
+    image: "/projects/webp/cardflow.webp",
     inProgress: false,
     previewFit: "cover",
     previewPosition: "top",
