@@ -191,18 +191,12 @@ function ProjectCard({
   const scale = useTransform(scrollYProgress, [0, 1], [1, isLast ? 1 : 0.94]);
   const opacity = useTransform(scrollYProgress, [0, 1], [1, isLast ? 1 : 0.55]);
 
-  // The sticky/stacking effect works by relying on the *following* card's
-  // sticky container to eventually cover and release this one. The last
-  // card has nothing after it to do that, so making it sticky here would
-  // leave it permanently pinned under the header, overlapping the Contact
-  // section as the page scrolls past. It renders in normal flow instead,
-  // settling into its final resting position once scrolled into view.
+  // The trailing spacer in Projects gives the last card enough scroll distance
+  // to hold briefly before releasing into the Contact section.
   return (
     <div
       ref={cardRef}
-      className={
-        stackEnabled && !isLast ? "sticky top-20 md:top-24" : "relative"
-      }
+      className={stackEnabled ? "sticky top-20 md:top-24" : "relative"}
       style={{ zIndex: index + 1 }}
     >
       <motion.div
@@ -455,6 +449,9 @@ export function Projects() {
               stackEnabled={isDesktopStack}
             />
           ))}
+          {isDesktopStack && (
+            <div aria-hidden="true" className="h-[55vh] shrink-0" />
+          )}
         </div>
       </div>
     </section>
