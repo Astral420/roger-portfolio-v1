@@ -169,14 +169,12 @@ function ProjectCard({
   index,
   total,
   forcedHeight,
-  isStackedLastCard,
   stackEnabled,
 }: {
   project: Project;
   index: number;
   total: number;
   forcedHeight?: number;
-  isStackedLastCard: boolean;
   stackEnabled: boolean;
 }) {
   const cardRef = useRef<HTMLDivElement>(null);
@@ -213,7 +211,6 @@ function ProjectCard({
           scale,
           opacity,
           minHeight: forcedHeight,
-          willChange: isStackedLastCard ? "auto" : "transform, opacity",
         }}
         initial={{ y: 40, opacity: 0 }}
         whileInView={{ y: 0, opacity: 1 }}
@@ -455,7 +452,6 @@ export function Projects() {
               forcedHeight={
                 isDesktopStack ? (stackCardHeight ?? undefined) : undefined
               }
-              isStackedLastCard={isDesktopStack && index === visibleProjects.length - 1}
               stackEnabled={isDesktopStack}
             />
           ))}

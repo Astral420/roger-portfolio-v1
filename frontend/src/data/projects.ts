@@ -91,7 +91,6 @@ export const projects: Project[] = [
     techStack: [
       "React",
       "TypeScript",
-      "Shadcn",
       "Python",
       "FastAPI",
       "OpenCV",
@@ -102,6 +101,8 @@ export const projects: Project[] = [
       "SQLAlchemy",
       "Oracle Cloud",
       "Vercel",
+      "Docker",
+      "Github Actions",
     ],
     architecture:
       "FastAPI handles auth, batch ingest, card review, and queue endpoints. Celery workers process extraction, cropping, hashing, and duplicate detection asynchronously. Postgres stores batches, scans, crops, users, and review state, while Redis powers the task queue. Cropped and raw images live in Cloudflare R2.",

@@ -50,7 +50,7 @@ function App() {
           </SocketProvider>
         </FeatureFlagProvider>
       </ThemeProvider>
-    </MotionConfig>
+      </MotionConfig>
   );
 }
 

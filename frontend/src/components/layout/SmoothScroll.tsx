@@ -4,6 +4,19 @@ import type { ReactNode } from 'react';
 import { useReducedMotionPreference } from '../../hooks/useReducedMotion';
 import { setLenisInstance } from '../../lib/lenisInstance';
 
+function isSafariBrowser() {
+  if (typeof navigator === "undefined") return false;
+
+  const ua = navigator.userAgent;
+  const vendor = navigator.vendor;
+
+  return (
+    vendor.includes("Apple") &&
+    /Safari/i.test(ua) &&
+    !/(Chrome|Chromium|CriOS|FxiOS|Edg|EdgiOS|OPR|OPiOS|Android)/i.test(ua)
+  );
+}
+
 /** Registers the live Lenis instance so non-React helpers (scrollToSection) can drive it. */
 function LenisRegistrar() {
   const lenis = useLenis();
@@ -23,8 +36,9 @@ function LenisRegistrar() {
  */
 export function SmoothScroll({ children }: { children: ReactNode }) {
   const reducedMotion = useReducedMotionPreference();
+  const shouldUseNativeScroll = reducedMotion || isSafariBrowser();
 
-  if (reducedMotion) {
+  if (shouldUseNativeScroll) {
     return <>{children}</>;
   }
 
@@ -32,7 +46,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
     <ReactLenis
       root
       options={{
-        lerp: 0.1,
+        lerp: 0.13,
         wheelMultiplier: 1,
         touchMultiplier: 1,
         smoothWheel: true,

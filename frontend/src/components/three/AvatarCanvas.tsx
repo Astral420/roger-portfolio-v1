@@ -1,4 +1,5 @@
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
 import { AvatarScene } from "./AvatarScene";
 import { usePointerPosition } from "../../hooks/usePointerPosition";
@@ -21,6 +22,35 @@ function useIsDocumentVisible() {
   return visible;
 }
 
+/** Tracks whether the canvas is near the viewport so WebGL can fully pause off-screen. */
+function useIsElementInViewport(ref: RefObject<Element | null>) {
+  const [inViewport, setInViewport] = useState(true);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element || !("IntersectionObserver" in window)) {
+      setInViewport(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setInViewport(entry.isIntersecting),
+      {
+        root: null,
+        // Start rendering slightly before the avatar enters the viewport.
+        rootMargin: "160px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return inViewport;
+}
+
+
 function CanvasLoader() {
   return (
     <div className="flex h-full w-full items-center justify-center">
@@ -31,25 +61,28 @@ function CanvasLoader() {
 
 /** Lazy-loaded 3D avatar canvas. Keeps R3F/Three out of the main bundle. */
 export default function AvatarCanvas() {
-  const pointer = usePointerPosition();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pointerRef = usePointerPosition();
   const reducedMotion = useReducedMotionPreference();
-  const isVisible = useIsDocumentVisible();
+  const isDocumentVisible = useIsDocumentVisible();
+  const isInViewport = useIsElementInViewport(containerRef);
+  const shouldRender = isDocumentVisible && isInViewport;
 
   return (
-    <div className="relative h-full w-full" aria-hidden="true">
+    <div ref={containerRef} className="relative h-full w-full" aria-hidden="true">
       <Suspense fallback={<CanvasLoader />}>
         <Canvas
           dpr={[1, 1.5]}
           camera={{ position: [0, 0, 5], fov: 40 }}
           gl={{ antialias: true, alpha: true }}
           performance={{ min: 0.5 }}
-          // Fully stop rendering/animating while the tab is hidden or the
-          // window is unfocused, instead of letting a huge accumulated delta
-          // fire the moment the tab regains focus (which made the model spin).
-          frameloop={isVisible ? "always" : "never"}
+          // Demand-render while visible, and fully stop when hidden/off-screen.
+          // AvatarScene invalidates each visible frame to keep the subtle idle
+          // animation alive without spending GPU time after the hero scrolls away.
+          frameloop={shouldRender ? "demand" : "never"}
         >
           <AvatarScene
-            pointer={{ nx: pointer.nx, ny: pointer.ny }}
+            pointerRef={pointerRef}
             reducedMotion={reducedMotion}
           />
         </Canvas>

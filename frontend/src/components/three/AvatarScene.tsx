@@ -3,11 +3,15 @@ import { useFrame } from "@react-three/fiber";
 import { ContactShadows, Environment, Float, useGLTF } from "@react-three/drei";
 import type { Group } from "three";
 import * as THREE from "three";
+import type { PointerPositionRef } from "../../hooks/usePointerPosition";
 
-useGLTF.preload("/models/roger2.glb");
+// useMeshopt=true (third arg) tells drei to wire up MeshoptDecoder internally.
+// No-op against the current uncompressed GLB — the loader only activates it
+// when the file declares EXT_meshopt_compression.
+useGLTF.preload("/models/roger2.optimized.glb", false, true);
 
 interface AvatarSceneProps {
-  pointer: { nx: number; ny: number };
+  pointerRef: PointerPositionRef;
   reducedMotion: boolean;
 }
 
@@ -36,11 +40,11 @@ const TARGET_HEIGHT = 2.2;
 // textures already are.
 let MODEL_TEXTURE_EXPOSURE = 1.8;
 
-export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
+export function AvatarScene({ pointerRef, reducedMotion }: AvatarSceneProps) {
   const groupRef = useRef<Group>(null);
   const modelRef = useRef<Group>(null);
   const centeredRef = useRef(false);
-  const { scene } = useGLTF("/models/roger2.glb");
+  const { scene } = useGLTF("/models/roger2.optimized.glb", false, true);
 
   // Every export tool (Blender, Mixamo, Ready Player Me, etc.) ships a GLB
   // with its own arbitrary pivot point and unit scale. Rather than guessing
@@ -93,7 +97,10 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
   }, [scene]);
 
   useFrame((state, delta) => {
-    if (!groupRef.current) return;
+    if (!groupRef.current) {
+      state.invalidate();
+      return;
+    }
 
     // Clamp delta so a stalled tab (backgrounded/minimized) resuming with a
     // huge elapsed time doesn't feed a giant timestep into the lerps below
@@ -118,6 +125,7 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
     }
 
     const t = state.clock.getElapsedTime();
+    const pointer = pointerRef.current;
 
     // Idle breathing
     const breathe = 1 + Math.sin(t * 0.9) * 0.015;
@@ -139,6 +147,8 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
       targetX,
       damp(2.2),
     );
+
+    state.invalidate();
   });
 
   return (
@@ -166,6 +176,7 @@ export function AvatarScene({ pointer, reducedMotion }: AvatarSceneProps) {
         scale={6}
         blur={2.6}
         far={2}
+        frames={1}
         color="#000000"
       />
     </>

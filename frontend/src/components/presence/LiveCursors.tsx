@@ -50,6 +50,8 @@ export function LiveCursors() {
   }, [reducedMotion, reportCursor]);
 
   useEffect(() => {
+    if (reducedMotion || remoteCursors.length === 0) return;
+
     let rafId: number | null = null;
 
     const syncViewport = () => {
@@ -60,6 +62,8 @@ export function LiveCursors() {
       });
     };
 
+    syncViewport();
+
     window.addEventListener("scroll", syncViewport, { passive: true });
     window.addEventListener("resize", syncViewport, { passive: true });
 
@@ -68,7 +72,7 @@ export function LiveCursors() {
       window.removeEventListener("resize", syncViewport);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, []);
+  }, [reducedMotion, remoteCursors.length]);
 
   if (reducedMotion || remoteCursors.length === 0) return null;
 
