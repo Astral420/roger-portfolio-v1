@@ -155,7 +155,7 @@ export function AvatarScene({ pointerRef, reducedMotion }: AvatarSceneProps) {
     <>
       <ambientLight intensity={0.5} />
       <directionalLight position={[3, 4, 2]} intensity={1.1} castShadow />
-      <pointLight position={[-3, -1, -2]} intensity={0.6} color="#3B82F6" />
+      <pointLight position={[-3, -1, -2]} intensity={0.6} color={getComputedStyle(document.documentElement).getPropertyValue('--accent-to-hex').trim() || '#818CF8'} />
       <Environment preset="city" environmentIntensity={0.4} />
 
       <Float

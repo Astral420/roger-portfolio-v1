@@ -104,10 +104,10 @@ function ProjectPreview({
   const imagePositionClass =
     project.previewPosition === "top" ? "object-top" : "object-center";
 
-  const gradients = [
-    "from-[#6366F1]/25 via-[#3B82F6]/10 to-transparent",
-    "from-[#3B82F6]/25 via-[#6366F1]/10 to-transparent",
-    "from-[#6366F1]/20 via-[#8B5CF6]/10 to-transparent",
+  const gradientStyles = [
+    { backgroundImage: 'linear-gradient(to bottom right, rgba(var(--accent-glow-rgb) / 0.25), rgba(var(--accent-glow-rgb) / 0.10), transparent)' },
+    { backgroundImage: 'linear-gradient(to bottom left, rgba(var(--accent-glow-rgb) / 0.20), rgba(var(--accent-glow-rgb) / 0.08), transparent)' },
+    { backgroundImage: 'linear-gradient(to top right, rgba(var(--accent-glow-rgb) / 0.18), rgba(var(--accent-glow-rgb) / 0.06), transparent)' },
   ];
 
   return (
@@ -150,7 +150,8 @@ function ProjectPreview({
           </button>
         ) : (
           <div
-            className={`relative h-full w-full bg-gradient-to-br ${gradients[index % gradients.length]}`}
+            className="relative h-full w-full"
+            style={gradientStyles[index % gradientStyles.length]}
           >
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="font-mono text-6xl font-thin text-primary/10 select-none">

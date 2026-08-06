@@ -8,7 +8,10 @@ export function AmbientLighting() {
       aria-hidden="true"
       className="fixed inset-0 overflow-hidden pointer-events-none z-0"
     >
-      <div className="absolute top-1/2 -right-40 w-[500px] h-[500px] rounded-full bg-[#3B82F6] opacity-[0.045] blur-[130px]" />
+      <div
+        className="absolute top-1/2 -right-40 w-[500px] h-[500px] rounded-full opacity-[0.045] blur-[130px]"
+        style={{ backgroundColor: 'var(--accent-to-hex)' }}
+      />
     </div>
   );
 }

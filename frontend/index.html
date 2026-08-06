@@ -11,14 +11,17 @@
         />
         <title>Roger — Full Stack Developer</title>
 
+        <!-- Geist font (variable) via Fontsource CDN -->
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
-            href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;1,300;1,400&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap"
             rel="stylesheet"
         />
+
         <script>
             (function () {
+                // ── Theme ──────────────────────────────────────────────────
                 try {
                     var stored = localStorage.getItem("roger-portfolio-theme");
                     var prefersLight = window.matchMedia(
@@ -32,6 +35,37 @@
                 } catch (e) {
                     document.documentElement.classList.add("dark");
                 }
+
+                // ── Accent Color Cycle ─────────────────────────────────────
+                // Picks a random accent on each page refresh (sessionStorage keeps
+                // it stable within the same tab/session, fresh on new load).
+                var SESSION_KEY = "roger-accent-idx";
+                var accents = [
+                    // [from-hex, to-hex, from-rgb, to-rgb, glow-rgb]
+                    // RGB channels in "R G B" format for Tailwind's opacity system
+                    ["#6366F1", "#818CF8", "99 102 241",  "129 140 248", "99,102,241"],   // Indigo
+                    ["#10B981", "#34D399", "16 185 129",  "52 211 153",  "16,185,129"],   // Emerald
+                    ["#8B5CF6", "#A78BFA", "139 92 246",  "167 139 250", "139,92,246"],   // Violet
+                    ["#F59E0B", "#FBBF24", "245 158 11",  "251 191 36",  "245,158,11"],   // Amber
+                    ["#F43F5E", "#FB7185", "244 63 94",   "251 113 133", "244,63,94"],    // Rose
+                ];
+
+                var idx;
+                var stored = sessionStorage.getItem(SESSION_KEY);
+                if (stored !== null) {
+                    idx = parseInt(stored, 10);
+                } else {
+                    idx = Math.floor(Math.random() * accents.length);
+                    sessionStorage.setItem(SESSION_KEY, String(idx));
+                }
+
+                var a = accents[idx];
+                var root = document.documentElement;
+                root.style.setProperty("--accent-from-hex", a[0]);
+                root.style.setProperty("--accent-to-hex", a[1]);
+                root.style.setProperty("--accent-from-rgb", a[2]);
+                root.style.setProperty("--accent-to-rgb", a[3]);
+                root.style.setProperty("--accent-glow-rgb", a[4]);
             })();
         </script>
     </head>

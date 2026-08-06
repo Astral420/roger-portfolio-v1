@@ -14,13 +14,15 @@ export default {
         secondary: 'rgb(var(--text-secondary) / <alpha-value>)',
         tertiary: 'rgb(var(--text-tertiary) / <alpha-value>)',
         accent: {
-          from: '#6366F1',
-          to: '#3B82F6',
-          DEFAULT: '#6366F1',
+          // RGB channel vars — Tailwind generates `rgb(R G B / opacity)` which
+          // needs space-separated channels, not a hex string.
+          from: 'rgb(var(--accent-from-rgb) / <alpha-value>)',
+          to: 'rgb(var(--accent-to-rgb) / <alpha-value>)',
+          DEFAULT: 'rgb(var(--accent-from-rgb) / <alpha-value>)',
         },
       },
       fontFamily: {
-        sans: ['Kanit', 'system-ui', 'sans-serif'],
+        sans: ['Geist', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         'hero': ['clamp(3rem, 9vw, 7.5rem)', { lineHeight: '0.98', letterSpacing: '-0.03em' }],
@@ -31,12 +33,14 @@ export default {
         content: '1180px',
       },
       backgroundImage: {
-        'accent-gradient': 'linear-gradient(135deg, #6366F1 0%, #3B82F6 100%)',
-        'accent-gradient-soft': 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(59,130,246,0.15) 100%)',
+        // These are overridden by the .bg-accent-gradient CSS class in index.css
+        // Kept here for any Tailwind JIT references that may exist
+        'accent-gradient': 'linear-gradient(135deg, var(--accent-from-hex) 0%, var(--accent-to-hex) 100%)',
+        'accent-gradient-soft': 'linear-gradient(135deg, rgba(var(--accent-glow-rgb) / 0.12) 0%, rgba(var(--accent-glow-rgb) / 0.06) 100%)',
       },
       boxShadow: {
-        glow: '0 0 0 1px rgba(99,102,241,0.15), 0 8px 30px -8px rgba(99,102,241,0.35)',
-        'glow-sm': '0 0 0 1px rgba(99,102,241,0.12), 0 4px 16px -4px rgba(99,102,241,0.25)',
+        glow: '0 0 0 1px rgba(var(--accent-glow-rgb) / 0.15), 0 8px 30px -8px rgba(var(--accent-glow-rgb) / 0.35)',
+        'glow-sm': '0 0 0 1px rgba(var(--accent-glow-rgb) / 0.12), 0 4px 16px -4px rgba(var(--accent-glow-rgb) / 0.25)',
       },
       transitionTimingFunction: {
         premium: 'cubic-bezier(0.22, 1, 0.36, 1)',
