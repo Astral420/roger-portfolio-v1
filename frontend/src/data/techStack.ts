@@ -22,6 +22,7 @@ export const techRowOne: TechItem[] = [
 export const techRowTwo: TechItem[] = [
   { name: "Linux", icon: "SiLinux" },
   { name: "Tailwind CSS", icon: "SiTailwindcss" },
+  { name: "MongoDB", icon: "SiMongodb" },
   { name: "MySQL", icon: "SiMysql" },
   { name: "PostgreSQL", icon: "SiPostgresql" },
   { name: "Firebase", icon: "SiFirebase" },

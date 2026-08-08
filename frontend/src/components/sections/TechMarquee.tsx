@@ -3,6 +3,7 @@ import { FaAws, FaCloudflare } from "react-icons/fa";
 import { GrOracle } from "react-icons/gr";
 import {
   SiDocker,
+  SiMongodb,
   SiExpo,
   SiFigma,
   SiFirebase,
@@ -31,6 +32,7 @@ import { useReducedMotionPreference } from "../../hooks/useReducedMotion";
 
 const ICONS: Record<string, IconType> = {
   SiReact,
+  SiMongodb,
   SiTypescript,
   SiJavascript,
   SiLaravel,
