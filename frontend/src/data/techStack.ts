@@ -1,4 +1,3 @@
-import { GrOracle } from "react-icons/gr";
 import type { TechItem } from "../types";
 
 // Row 1 — scrolls right-to-left
