@@ -71,21 +71,19 @@ body {
   color: rgb(var(--text-primary));
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+/* Hide scrollbar while preserving scrollability */
+html,
+body,
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(var(--border-c) / 0.18);
-  border-radius: 999px;
-  border: 2px solid rgb(var(--bg));
-}
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--border-c) / 0.3);
+
+::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+  width: 0;
+  height: 0;
 }
 
 /* Visible focus states */
