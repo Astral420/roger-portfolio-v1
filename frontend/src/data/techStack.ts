@@ -1,3 +1,4 @@
+import { GrOracle } from "react-icons/gr";
 import type { TechItem } from "../types";
 
 // Row 1 — scrolls right-to-left
@@ -9,6 +10,8 @@ export const techRowOne: TechItem[] = [
   { name: "TypeScript", icon: "SiTypescript" },
   { name: "JavaScript", icon: "SiJavascript" },
   { name: "Laravel", icon: "SiLaravel" },
+  { name: "Python", icon: "SiPython" },
+  { name: "FastAPI", icon: "SiFastapi" },
   { name: "PHP", icon: "SiPhp" },
   { name: "Redis", icon: "SiRedis" },
   { name: "Docker", icon: "SiDocker" },
@@ -26,6 +29,7 @@ export const techRowTwo: TechItem[] = [
   { name: "Expo", icon: "SiExpo" },
   { name: "AWS", icon: "FaAws" },
   { name: "Cloudflare", icon: "FaCloudflare" },
+  { name: "Oracle Cloud", icon: "GrOracle" },
   { name: "Express.js", icon: "SiExpress" },
   { name: "Node.js", icon: "SiNodedotjs" },
   { name: "Figma", icon: "SiFigma" },

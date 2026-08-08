@@ -19,9 +19,10 @@ export const projects: Project[] = [
       "React",
       "TailwindCSS",
       "Google Cloud Scheduler",
+      "LittleFS",
     ],
     architecture:
-      "ESP32-based RFID door lock, with Firebase Realtime for easy data correlation between client and hardware, running on Arduino Framework. GCP Scheduler for CRON jobs. Client runs on React for Web and Flutter for Mobile.",
+      "ESP32-based RFID door lock, with Firebase Realtime for easy data correlation between client and hardware, running on Arduino Framework. GCP Scheduler for CRON jobs. Client runs on React inside a LittleFS web server for Web and Flutter for Mobile.",
     githubUrl: "https://github.com/Astral420/KnockSense",
     liveUrl: "",
     image: "/projects/webp/knocksense.webp",
@@ -47,6 +48,7 @@ export const projects: Project[] = [
     architecture:
       "React/Vite frontend with an Express.js backend, PostgreSQL database, JWT-based auth, and Dockerized services for deployment and development.",
     githubUrl: "",
+    liveUrl: "",
     image: "/projects/Servify.png",
     previewFit: "cover",
     previewPosition: "top",
@@ -86,7 +88,7 @@ export const projects: Project[] = [
     number: "04",
     name: "CardFlow",
     description:
-      "Crops, deduplicates, and auto-rotates trading card scans to smoothen card entry into Card Dealer Pro.",
+      "Crops, deduplicates, and auto-rotates raw trading card scans to optimze card entry into Card Dealer Pro.",
     role: "Solo Full Stack Developer",
     techStack: [
       "React",

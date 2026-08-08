@@ -1,5 +1,6 @@
 import type { IconType } from "react-icons";
 import { FaAws, FaCloudflare } from "react-icons/fa";
+import { GrOracle } from "react-icons/gr";
 import {
   SiDocker,
   SiExpo,
@@ -14,6 +15,8 @@ import {
   SiExpress,
   SiNodedotjs,
   SiPhp,
+  SiPython,
+  SiFastapi,
   SiPostgresql,
   SiReact,
   SiRedis,
@@ -32,6 +35,8 @@ const ICONS: Record<string, IconType> = {
   SiJavascript,
   SiLaravel,
   SiPhp,
+  SiPython,
+  SiFastapi,
   SiRedis,
   SiDocker,
   SiGit,
@@ -49,6 +54,7 @@ const ICONS: Record<string, IconType> = {
   FaCloudflare,
   SiFlutter,
   SiDart,
+  GrOracle,
 };
 
 function Tile({ item }: { item: TechItem }) {
