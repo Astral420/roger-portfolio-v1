@@ -12,7 +12,7 @@ export const experienceItems: ExperienceItem[] = [
   },
   {
     id: "exp-02",
-    type: "internship",
+    type: "experience",
     title: "Full Stack Developer Intern",
     organization: "SOCIA",
     period: "Feb 2026 - May 2026",

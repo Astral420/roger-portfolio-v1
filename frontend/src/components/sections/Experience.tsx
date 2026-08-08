@@ -6,7 +6,7 @@ import type { ExperienceType } from '../../types';
 const easing = [0.22, 1, 0.36, 1] as const;
 
 const TYPE_META: Record<ExperienceType, { icon: LucideIcon; label: string }> = {
-  internship: { icon: Briefcase, label: 'Internship' },
+  experience: { icon: Briefcase, label: 'Experience' },
   education: { icon: GraduationCap, label: 'Education' },
   freelance: { icon: Sparkles, label: 'Freelance' },
   achievement: { icon: Award, label: 'Achievement' },

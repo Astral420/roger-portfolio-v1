@@ -88,7 +88,7 @@ export const projects: Project[] = [
     number: "04",
     name: "CardFlow",
     description:
-      "Crops, deduplicates, and auto-rotates raw trading card scans to optimze card entry into Card Dealer Pro.",
+      "Crops, deduplicates, and auto-rotates raw trading card scans to optimize card entry into Card Dealer Pro.",
     role: "Solo Full Stack Developer",
     techStack: [
       "React",

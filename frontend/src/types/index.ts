@@ -25,7 +25,7 @@ export interface Project {
 }
 
 export type ExperienceType =
-  "internship" | "education" | "freelance" | "achievement";
+  "experience" | "education" | "freelance" | "achievement";
 
 export interface ExperienceItem {
   id: string;

@@ -38,12 +38,12 @@ export function About() {
                 architectures, building maintainable APIs, optimizing databases,
                 and creating interfaces that feel intuitive.
               </p>
-              <p>
+              {/*<p>
                 My stack includes React, React Native, Node.js, Laravel,
                 TypeScript, PostgreSQL, MySQL, and other things. I enjoy solving
                 problems across the entire development lifecycle, from planning
                 and implementation to deployment and monitoring.
-              </p>
+              </p>*/}
               <p>
                 Beyond writing code, I'm always looking to improve my
                 craft—whether that's exploring better engineering practices,
