@@ -23,6 +23,16 @@ export function useActiveSection(sectionIds: readonly string[]) {
     const probeRatio = 0.3;
 
     const computeActive = () => {
+      const scrollPosition =
+        window.scrollY || document.documentElement.scrollTop;
+      const isAtBottom =
+        window.innerHeight + scrollPosition >=
+        document.documentElement.scrollHeight - 30;
+
+      if (isAtBottom) {
+        return elements[elements.length - 1].id;
+      }
+
       const probeY = window.innerHeight * probeRatio;
       let current = elements[0].id;
 

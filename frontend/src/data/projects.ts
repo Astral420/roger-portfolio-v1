@@ -36,7 +36,7 @@ export const projects: Project[] = [
     name: "Servify",
     description:
       "A service marketplace platform that connects clients with providers for booking, reviews, and service management.",
-    role: "Backend Lead & API design",
+    role: "Backend Lead, focused inAPI design",
     techStack: [
       "Express.js",
       "Javascript",
@@ -110,9 +110,6 @@ export const projects: Project[] = [
       "FastAPI handles auth, batch ingest, card review, and queue endpoints. Celery workers process extraction, cropping, hashing, and duplicate detection asynchronously. Postgres stores batches, scans, crops, users, and review state, while Redis powers the task queue. Cropped and raw images live in Cloudflare R2.",
     githubUrl: "https://github.com/roger/signal",
     liveUrl: "https://cardflowtool.tech",
-    // TODO: drop a screenshot in public/projects/ and point this at it,
-    // e.g. "/projects/signal.png". Empty string falls back to the gradient
-    // placeholder.
     image: "/projects/webp/cardflow.webp",
     inProgress: false,
     previewFit: "cover",
