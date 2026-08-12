@@ -6,7 +6,10 @@ import type { PresenceRecord, RemoteCursor } from "./presence.types";
  * Records expire after `TTL_MS` without a refresh (cursor move, rename, or
  * app-level ping), which covers ungraceful disconnects.
  */
-const TTL_MS = 15_000;
+// Must exceed the client-side keepalive interval (20 s) with comfortable margin.
+// Clients that stop sending any frame (cursor, ping, etc.) for this long are
+// treated as ungracefully disconnected and swept from the store.
+const TTL_MS = 45_000;
 
 export class PresenceStore {
   private readonly records = new Map<string, PresenceRecord>();

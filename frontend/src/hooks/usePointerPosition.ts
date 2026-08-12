@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { MutableRefObject } from 'react';
+import type { RefObject } from 'react';
 
 export interface PointerPosition {
   x: number;
@@ -9,7 +9,7 @@ export interface PointerPosition {
   ny: number;
 }
 
-export type PointerPositionRef = MutableRefObject<PointerPosition>;
+export type PointerPositionRef = RefObject<PointerPosition>;
 
 const CENTER: PointerPosition = { x: 0, y: 0, nx: 0, ny: 0 };
 
