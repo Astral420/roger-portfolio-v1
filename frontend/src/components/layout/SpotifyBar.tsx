@@ -1,13 +1,12 @@
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
-import { useEffect, useState } from "react";
-import { getNowPlaying } from "../../lib/spotify";
+import { useState } from "react";
+import { useNowPlaying } from "../../hooks/useNowPlaying";
 import type { SpotifyTrack } from "../../types";
 
 const BARS = [0, 1, 2, 3];
 
 /** Scroll distance (px) after which the SpotifyBar fades away. */
 const HIDE_SCROLL_THRESHOLD = 24;
-const NOW_PLAYING_POLL_MS = 5_000;
 
 const FALLBACK_TRACK: SpotifyTrack = {
   song: "Not playing",
@@ -22,56 +21,12 @@ const FALLBACK_TRACK: SpotifyTrack = {
 export function SpotifyBar() {
   const { scrollY } = useScroll();
   const [atTop, setAtTop] = useState(true);
-  const [track, setTrack] = useState<SpotifyTrack>(FALLBACK_TRACK);
+  const { data: track = FALLBACK_TRACK } = useNowPlaying();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     setAtTop(latest < HIDE_SCROLL_THRESHOLD);
   });
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const loadNowPlaying = async () => {
-      try {
-        const nowPlayingTrack = await getNowPlaying();
-        if (!cancelled) {
-          setTrack(nowPlayingTrack);
-        }
-      } catch {
-        if (!cancelled) {
-          setTrack((prevTrack) => prevTrack ?? FALLBACK_TRACK);
-        }
-      }
-    };
-
-    const handleWindowFocus = () => {
-      void loadNowPlaying();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        void loadNowPlaying();
-      }
-    };
-
-    void loadNowPlaying();
-
-    const intervalId = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void loadNowPlaying();
-      }
-    }, NOW_PLAYING_POLL_MS);
-
-    window.addEventListener("focus", handleWindowFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      window.removeEventListener("focus", handleWindowFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, []);
 
   return (
     <motion.div
