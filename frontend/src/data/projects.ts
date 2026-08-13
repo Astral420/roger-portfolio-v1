@@ -36,7 +36,7 @@ export const projects: Project[] = [
     name: "Servify",
     description:
       "A service marketplace platform that connects clients with providers for booking, reviews, and service management.",
-    role: "Backend Lead, focused inAPI design",
+    role: "Backend Lead, focused in API design",
     techStack: [
       "Express.js",
       "Javascript",
